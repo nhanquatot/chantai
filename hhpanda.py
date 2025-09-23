@@ -60,18 +60,35 @@ def print_progress(current, total, filename=""):
     print(f'\r📥 [{bar}] {percent:.1f}% ({current}/{total}) {filename}', end='', flush=True)
 
 def main():
-    # Nhập từ người dùng
+    # === CẤU HÌNH REQUEST CỐ ĐỊNH ===
+    user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36"
+    referer = "https://streamfree.vip/embed/vt/KI6rNDfr"
+
+    headers = {
+        'User-Agent': user_agent,
+        'Referer': referer,
+        'Accept': '*/*',
+        'Accept-Language': 'vi,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br, zstd',
+        'Origin': 'https://streamfree.vip',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'Sec-Ch-Ua': '"Not;A=Brand";v="99", "Google Chrome";v="139", "Chromium";v="139"',
+        'Sec-Ch-Ua-Mobile': '?0',
+        'Sec-Ch-Ua-Platform': '"Windows"',
+        'Connection': 'keep-alive',
+    }
+
+    # Nhập từ người dùng (chỉ cần URL và tên file)
     m3u8_url = input("Nhập URL: ").strip()
     filename = input("Nhập tên file output (không cần đuôi .mp4): ").strip()
-    referer = input("Nhập Referer (Enter để dùng mặc định): ").strip() or "https://hhpanda.ad"
 
     output_dir = filename
     os.makedirs(output_dir, exist_ok=True)
 
     # Tạo session
     session = create_session()
-    headers = {"Referer": referer}
-
     print("🔍 Đang phân tích M3U8...")
     try:
         m3u8_data = session.get(m3u8_url, headers=headers, timeout=10).text
@@ -97,32 +114,24 @@ def main():
     # Tải các file TS
     ts_files = []
     png_headers_found = 0
-
     for i, ts_url in enumerate(ts_urls, 1):
-        filename_ts = f"{i:05d}.ts"  # i là số thứ tự, định dạng 5 chữ số: 00001.ts, 00002.ts...
+        filename_ts = f"{i:05d}.ts"
         filepath = os.path.join(output_dir, filename_ts)
-
         print_progress(i-1, total_files, filename_ts)
-
         try:
-            content = download_with_retry(session, ts_url, headers)
-
+            content = download_with_retry(session, ts_url, headers)  # Truyền headers đầy đủ vào đây
             with open(filepath, 'wb') as f:
                 f.write(content)
-
             # Kiểm tra và xóa PNG header
             if remove_png_header(filepath):
                 png_headers_found += 1
-
             ts_files.append(filepath)
-
         except Exception as e:
             print(f"\n❌ Lỗi tải {ts_url}: {e}")
             continue
 
     print_progress(total_files, total_files, "Hoàn thành!")
     print(f"\n✅ Đã tải {len(ts_files)}/{total_files} file")
-
     if png_headers_found > 0:
         print(f"🔧 Đã xử lý {png_headers_found} file có PNG header")
 
@@ -139,18 +148,14 @@ def main():
     # Ghép video bằng ffmpeg
     print("🎬 Đang ghép video...")
     output_file = f"{filename}.mp4"
-
     try:
         cmd = [
             "ffmpeg", "-f", "concat", "-safe", "0",
             "-i", concat_file, "-c", "copy", output_file, "-y"
         ]
-
         result = subprocess.run(cmd, capture_output=True, text=True)
-
         if result.returncode == 0:
             print(f"✅ Video đã được tạo: {output_file}")
-
             # Xóa file tạm
             cleanup = True
             if cleanup:
@@ -160,9 +165,10 @@ def main():
                 print("🧹 Đã xóa file tạm")
         else:
             print(f"❌ Lỗi ffmpeg: {result.stderr}")
+    except FileNotFoundError:
+        print("❌ Không tìm thấy ffmpeg. Vui lòng cài đặt ffmpeg!")
     except Exception as e:
         print(f"❌ Lỗi ghép video: {e}")
 
 if __name__ == "__main__":
-
     main()
