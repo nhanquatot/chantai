@@ -160,11 +160,9 @@ def main():
                 print("🧹 Đã xóa file tạm")
         else:
             print(f"❌ Lỗi ffmpeg: {result.stderr}")
-
-    except FileNotFoundError:
-        print("❌ Không tìm thấy ffmpeg. Vui lòng cài đặt ffmpeg!")
     except Exception as e:
         print(f"❌ Lỗi ghép video: {e}")
 
 if __name__ == "__main__":
+
     main()
