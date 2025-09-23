@@ -10,8 +10,8 @@ Dưới đây là phiên bản đã cập nhật hoàn chỉnh của file hhpand
         cmd = [
             "ffmpeg", "-f", "concat", "-safe", "0",
             "-i", concat_file, "-c", "copy", output_file, "-y"
-        ]
-dùng gpu:
+        ]  
+dùng gpu:  
         cmd = [
             "ffmpeg", "-f", "concat", "-safe", "0",
             "-i", concat_file,
