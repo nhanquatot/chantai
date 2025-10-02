@@ -7,7 +7,8 @@ clear_output()
 !java -jar abyss-dl.jar "N5Up-LNIl" -o "tienvo134.mp4"
 !pip install tqdm
 from IPython.display import clear_output
-clear_output()
+clear_output()  
+GPU 
 import os
 import subprocess
 import re
@@ -73,14 +74,10 @@ for input_file in video_files:
         continue
 
     # 2. Xây dựng lệnh ffmpeg
-    #    -i: Chỉ định file đầu vào
-    #    -c:v hevc_nvenc: Chọn bộ mã hóa H.265 của NVIDIA (sử dụng GPU)
-    #    -preset p5: Chọn một preset cân bằng giữa tốc độ và chất lượng (p1-p7, p7 là nhanh nhất)
-    #    -cq 28: Đặt mức chất lượng (Constant Quality). Giá trị càng thấp, chất lượng càng cao (18-28 là phổ biến)
-    #    -y: Tự động ghi đè lên file đầu ra nếu nó đã tồn tại
+ 
     cmd = [
         "ffmpeg", "-i", input_file,
-        "-vf", "scale=1280:720",
+        "-vf", "scale='min(iw, 1280)':-2",
         "-pix_fmt", "yuv420p",
         "-c:v", "hevc_nvenc",
         "-preset", "fast",
