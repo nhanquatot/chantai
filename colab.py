@@ -8,7 +8,7 @@ clear_output()
 !pip install tqdm
 from IPython.display import clear_output
 clear_output()  
-GPU 
+#GPU 
 import os
 import subprocess
 import re
