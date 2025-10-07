@@ -8,7 +8,7 @@ clear_output()
 !pip install tqdm
 from IPython.display import clear_output
 clear_output()  
-#GPU 
+#GPU convert video  
 import os
 import subprocess
 import re
@@ -122,3 +122,172 @@ for input_file in video_files:
             print(stderr_output)
 
 print(f"\n🎉 Hoàn tất! Tất cả các video đã được xử lý và lưu vào thư mục: {output_folder}")
+##tạo link tải  
+import os
+
+# Tên file TXT chứa danh sách
+file_name = "yeuthan.txt"
+
+# Lệnh cơ sở (Phần "java -jar abyss-dl.jar")
+base_command = "java -jar abyss-dl.jar"
+
+# Biến để lưu trữ các lệnh hoàn chỉnh
+download_commands = []
+
+try:
+    # Mở và đọc nội dung file
+    with open(file_name, 'r', encoding='utf-8') as f:
+        # Đọc từng dòng trong file
+        for line in f:
+            # Loại bỏ khoảng trắng thừa ở đầu/cuối dòng (ví dụ: '\n')
+            line = line.strip()
+
+            # Bỏ qua dòng trống
+            if not line:
+                continue
+
+            # Tách chuỗi:
+            # 1. Tìm vị trí của khoảng trắng cuối cùng trong dòng.
+            # 2. Phần bên trái là TÊN PHIM (Bao gồm khoảng trắng).
+            # 3. Phần bên phải là MÃ (Không có khoảng trắng).
+            last_space_index = line.rfind(' ')
+
+            if last_space_index != -1:
+                # Tên phim (Bên trái khoảng trắng cuối cùng)
+                ten_phim = line[:last_space_index].strip()
+
+                # Mã (Bên phải khoảng trắng cuối cùng)
+                ma_video = line[last_space_index+1:].strip()
+
+                # Xây dựng tên file đầu ra (.mp4)
+                output_file = f'"{ten_phim}.mp4"'
+
+                # Xây dựng câu lệnh hoàn chỉnh
+                # Định dạng: java -jar abyss-dl.jar "MÃ" -o "TÊN PHIM.mp4"
+                full_command = f'{base_command} "{ma_video}" -o {output_file}'
+
+                download_commands.append(full_command)
+            else:
+                print(f"Bỏ qua dòng không đúng định dạng: {line}")
+
+    # --- HIỂN THỊ KẾT QUẢ ---
+    print(f"Đã tạo {len(download_commands)} lệnh tải xuống từ file {file_name}:\n")
+
+    # In ra tất cả các lệnh đã tạo
+    for cmd in download_commands:
+        print(cmd)
+
+    # TUỲ CHỌN: Nếu bạn muốn chạy các lệnh này tự động trong Colab,
+    # bạn có thể tạo một file bash script để thực thi:
+    # script_content = '\n'.join(f'!{cmd}' for cmd in download_commands)
+    # print("\n--- Mã Bash Script cho Colab ---")
+    # print(script_content)
+
+except FileNotFoundError:
+    print(f"LỖI: Không tìm thấy file '{file_name}'. Hãy đảm bảo file đã được tải lên cùng thư mục.")
+except Exception as e:
+    print(f"Đã xảy ra lỗi: {e}")
+##xem thông tin video  
+import os
+import ffmpeg
+
+# --- CẤU HÌNH ---
+# Thay đổi đường dẫn này thành thư mục chứa video của bạn
+VIDEO_FOLDER = r"E:\download\video" 
+# Thêm các phần mở rộng video bạn muốn kiểm tra
+VIDEO_EXTENSIONS = ('.mp4', '.mkv', '.avi', '.mov', '.webm') 
+# Tên file đầu ra
+OUTPUT_FILE = "video_info_report.txt"
+# ----------------
+
+def get_video_metadata(file_path):
+    """
+    Sử dụng ffmpeg-python để lấy metadata chi tiết của video.
+    """
+    # ... (giữ nguyên hàm này từ code trước) ...
+    try:
+        probe_data = ffmpeg.probe(file_path)
+        format_info = probe_data.get('format', {})
+        file_format = format_info.get('format_name', 'N/A')
+        
+        video_codec = 'N/A'
+        audio_codec = 'N/A'
+        
+        streams = probe_data.get('streams', [])
+        for stream in streams:
+            codec_type = stream.get('codec_type')
+            codec_name = stream.get('codec_name', 'N/A')
+            codec_long_name = stream.get('codec_long_name', 'N/A')
+            
+            if codec_type == 'video' and video_codec == 'N/A':
+                video_codec = f"{codec_name} ({codec_long_name})"
+            elif codec_type == 'audio' and audio_codec == 'N/A':
+                audio_codec = f"{codec_name} ({codec_long_name})"
+
+        return {
+            "format": file_format,
+            "video_codec": video_codec,
+            "audio_codec": audio_codec
+        }
+    except ffmpeg.Error as e:
+        return {
+            "format": f"Lỗi: Không thể đọc file. {e.stderr.decode('utf8').strip()}",
+            "video_codec": "N/A",
+            "audio_codec": "N/A"
+        }
+    except FileNotFoundError:
+        return {
+            "format": "Lỗi: Không tìm thấy ffprobe. Đảm bảo FFmpeg đã được cài đặt.",
+            "video_codec": "N/A",
+            "audio_codec": "N/A"
+        }
+    except Exception as e:
+        return {
+            "format": f"Lỗi không xác định: {e}",
+            "video_codec": "N/A",
+            "audio_codec": "N/A"
+        }
+
+def process_folder(folder_path, output_file):
+    """
+    Duyệt qua thư mục, lấy thông tin và ghi vào file văn bản.
+    """
+    report_content = ""
+    separator = "=" * 80 + "\n"
+    
+    report_content += "BÁO CÁO THÔNG TIN VIDEO\n"
+    report_content += f"Thư mục quét: {folder_path}\n"
+    report_content += f"Thời gian: {os.stat(os.path.abspath(__file__)).st_mtime}\n"
+    report_content += separator
+
+    # Bắt đầu quét thư mục
+    for dirpath, dirnames, filenames in os.walk(folder_path):
+        for filename in filenames:
+            # Kiểm tra file video
+            if filename.lower().endswith(VIDEO_EXTENSIONS):
+                file_path = os.path.join(dirpath, filename)
+                metadata = get_video_metadata(file_path)
+                
+                # Định dạng nội dung cho từng video
+                report_content += f"TÊN FILE: {filename}\n"
+                report_content += f"ĐƯỜNG DẪN: {dirpath}\n"
+                report_content += f"CONTAINER (FORMAT): {metadata['format']}\n"
+                report_content += f"VIDEO CODEC: {metadata['video_codec']}\n"
+                report_content += f"AUDIO CODEC: {metadata['audio_codec']}\n"
+                report_content += "-" * 50 + "\n" # Dấu gạch ngắn ngăn cách các file
+
+    # Ghi nội dung đã thu thập vào file
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            f.write(report_content)
+        
+        print(f"\n✅ Đã hoàn tất việc quét.")
+        print(f"File báo cáo đã được tạo tại: {os.path.abspath(output_file)}")
+        print(f"Kiểm tra file '{output_file}' để xem chi tiết.")
+        
+    except Exception as e:
+        print(f"\n❌ Lỗi khi ghi file: {e}")
+
+# Chạy chương trình
+if __name__ == "__main__":
+    process_folder(VIDEO_FOLDER, OUTPUT_FILE)
